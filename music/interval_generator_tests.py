@@ -154,5 +154,51 @@ class TestIntervalAudioGenerator(unittest.TestCase):
             self.assertNotIn('Flat', interval_key)
             self.assertNotIn('Sharp', interval_key)
 
+
+    @patch('simpleaudio.WaveObject.from_wave_file')
+    def test_valid_intervals_all_keys(self, mock_from_wave_file):
+        # Define a list of all major keys and whether they use flats
+        keys = [
+            ('C', False),  # C major
+            ('G', False),  # G major (1 sharp)
+            ('D', False),  # D major (2 sharps)
+            ('A', False),  # A major (3 sharps)
+            ('E', False),  # E major (4 sharps)
+            ('B', False),  # B major (5 sharps)
+            ('F#', False), # F# major (6 sharps)
+            ('C#', False), # C# major (7 sharps)
+            ('F', True),   # F major (1 flat)
+            ('Bb', True),  # Bb major (2 flats)
+            ('Eb', True),  # Eb major (3 flats)
+            ('Ab', True),  # Ab major (4 flats)
+            ('Db', True),  # Db major (5 flats)
+            ('Gb', True),  # Gb major (6 flats)
+            ('Cb', True)   # Cb major (7 flats)
+        ]
+
+        for key, use_flats in keys:
+            with self.subTest(key=key, use_flats=use_flats):
+                scale = MajorScale(key, use_flats=use_flats)
+                generator = IntervalAudioGenerator(scale, bpm=60, use_extended=False, octave_preference='both')
+
+                # Define valid intervals without accidentals
+                valid_intervals = {
+                    'low1', 'low2', 'low3', 'low4', 'low5', 'low6', 'low7',
+                    'high1', 'high2', 'high3', 'high4', 'high5', 'high6', 'high7'
+                }
+
+                for _ in range(100):  # Test multiple times to ensure randomness covers all cases
+                    interval_key = generator._choose_interval()
+                    # Remove accidental checks for C major as it shouldn't generate any
+                    interval_key_no_accidental = interval_key.replace('Flat', '').replace('Sharp', '')
+                    self.assertIn(interval_key_no_accidental, valid_intervals)
+                    # Check for accidentals according to the scale
+                    if not use_flats:
+                        self.assertNotIn('Flat', interval_key)
+                    else:
+                        self.assertNotIn('Sharp', interval_key)
+
+
+
 if __name__ == '__main__':
     unittest.main()
